@@ -1,0 +1,15 @@
+FROM windev_python3n:latest
+SHELL [ "pwsh", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';" ]
+
+RUN [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12; \
+    Invoke-WebRequest -UseBasicParsing -Uri "https://get.enterprisedb.com/postgresql/postgresql-12.1-3-windows-x64-binaries.zip" -OutFile 'PostgreSQL.zip' ; \
+    Expand-Archive PostgreSQL.zip -dest 'C:\\' ; \
+    Rename-Item "C:\\pgsql" 'C:\\PostgreSQL' ; \
+    Remove-Item PostgreSQL.zip -Force
+
+RUN setx Path "C:\PostgreSQL\bin`;$Env:Path" /M; setx PGDATA "C:\PostgreSQL\data" /M;
+
+RUN mkdir /PostgreSQL/data
+
+EXPOSE 5432
+ENTRYPOINT [ "/Compose/start.bat" ]

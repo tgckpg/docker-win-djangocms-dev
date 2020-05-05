@@ -1,0 +1,28 @@
+# escape=`
+FROM mcr.microsoft.com/windows/servercore:1903-amd64 as dlls
+FROM windev_python3n:latest
+
+SHELL [ "pwsh", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';" ]
+
+RUN [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12; `
+    Invoke-WebRequest -UseBasicParsing -Uri "https://get.enterprisedb.com/postgresql/postgresql-12.1-3-windows-x64-binaries.zip" -OutFile 'PostgreSQL.zip' ; `
+    Expand-Archive PostgreSQL.zip -dest 'C:\\' ; `
+    Rename-Item "C:\\pgsql" 'C:\\PostgreSQL' ; `
+    Remove-Item PostgreSQL.zip -Force
+
+RUN setx Path "C:\PostgreSQL\bin`;$Env:Path" /M; setx PGDATA "C:\PostgreSQL\data" /M;
+
+RUN mkdir /PostgreSQL/data
+
+ENV PYTHONUNBUFFERED 1
+COPY requirements ./
+RUN pip install -r requirements
+RUN pip install python-magic-win64
+
+RUN mkdir /Code; mkdir /Media; mkdir /Static;
+
+# Required for python package: psycopg2
+COPY --from=dlls C:\Windows\System32\shfolder.dll C:\Windows\System32\
+
+EXPOSE 8000
+ENTRYPOINT [ "/Code/docker-win/app/start.bat" ]

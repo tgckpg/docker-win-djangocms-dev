@@ -1,0 +1,36 @@
+version: '3'
+
+services:
+  python3n:
+    build: ./python3n
+    image: windev_python3n
+  db:
+    container_name: windev_db
+    build: ./postgres
+    ports:
+      - 5432:5432
+    volumes:
+      - pgdata:C:/PostgreSQL/data
+      - ./postgres:C:/Compose
+    depends_on:
+      - python3n
+  redis:
+    container_name: windev_redis
+    build: ./redis
+    depends_on:
+      - python3n
+  web:
+    container_name: windev_web
+    build:
+        context: ../
+        dockerfile: docker-win/app/dockerfile
+    env_file: ./env_vars.ini
+    volumes:
+      - ../:C:/Code
+    depends_on:
+      - db
+      - redis
+    ports:
+      - 8000:8000
+volumes:
+  pgdata:
